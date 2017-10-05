@@ -127,7 +127,8 @@ def _head_object(s3_conn, bucket, key):
     """Retrieve information about an object in S3 if it exists.
 
     Args:
-        s3_conn (botocore.client.S3): S3 connection to use for operations.
+        s3_conn (:class:`botocore.client.S3`): S3 connection to use for
+            operations.
         bucket (str): name of the bucket containing the key.
         key (str): name of the key to lookup.
 
@@ -152,7 +153,8 @@ def _ensure_bucket(s3_conn, bucket):
     """Create an S3 bucket if it does not already exist.
 
     Args:
-        s3_conn (botocore.client.S3): S3 connection to use for operations.
+        s3_conn (:class:`botocore.client.S3`): S3 connection to use for
+            operations.
         bucket (str): name of the bucket to create.
 
     Returns:
@@ -186,7 +188,8 @@ def _upload_code(s3_conn, bucket_name, name, contents):
     expected contents.
 
     Args:
-        s3_conn (botocore.client.S3): S3 connection to use for operations.
+        s3_conn (:class:`botocore.client.S3`): S3 connection to use for
+            operations.
         bucket (str): name of the bucket to create.
         prefix (str): S3 prefix to prepend to the constructed key name for
             the uploaded file
@@ -258,36 +261,22 @@ def _check_pattern_list(patterns, key, default=None):
 
 
 def _upload_function(s3_conn, bucket_name, function_name, path,
-                     include, exclude):
+                     include=None, exclude=None):
     """Builds a Lambda payload from user configuration and uploads it to S3.
 
     Args:
-        s3_conn (botocore.client.S3): S3 connection to use for operations.
-        bucket (str): name of the bucket to upload to.
-        prefix (str): S3 prefix to prepend to the constructed key name for
-            the uploaded file
-        name (str): desired name of the Lambda function. Will be used to
-            construct a key name for the uploaded file.
-        options (dict): configuration for how to build the payload.
-            Consists of the following keys:
-                * path:
-                    base path to retrieve files from (mandatory). If not
-                    absolute, it will be interpreted as relative to the stacker
-                    configuration file directory, then converted to an absolute
-                    path. See :func:`stacker.util.get_config_directory`.
-                * include:
-                    file patterns to include in the payload (optional).
-                * exclude:
-                    file patterns to exclude from the payload (optional).
+        s3_conn (:class:`botocore.client.S3`): S3 connection to use for
+            operations.
+        bucket_name (str): name of the bucket to upload to.
+        function_name (str): desired name of the Lambda function. Will be used
+            to construct a key name for the uploaded file.
+        path (str): base path to retrieve files from (mandatory).
+        include (list): file patterns to include in the payload (optional).
+        exclude (list): file patterns to exclude from the payload (optional).
 
     Returns:
-        troposphere.awslambda.Code: CloudFormation AWS Lambda Code object,
-        pointing to the uploaded object in S3.
+        dict: A dictionary with the bucket & key where the code is located.
 
-    Raises:
-        ValueError: if any configuration is invalid.
-        botocore.exceptions.ClientError: any error from boto3 is passed
-            through.
     """
     root = os.path.expanduser(path)
 
@@ -301,106 +290,27 @@ def _upload_function(s3_conn, bucket_name, function_name, path,
     return _upload_code(s3_conn, bucket_name, function_name, zip_contents)
 
 
-def upload_lambda_functions(bucket_name, s3_conn, function_name, path,
+def upload_lambda_functions(s3_conn, bucket_name, function_name, path,
                             include=None, exclude=None):
     """Builds Lambda payloads from user configuration and uploads them to S3.
 
     Constructs ZIP archives containing files matching specified patterns for
-    each function, uploads the result to Amazon S3, then stores objects (of
-    type :class:`troposphere.awslambda.Code`) in the context's hook data,
-    ready to be referenced in blueprints.
+    each function, uploads the result to Amazon S3, then returns the bucket
+    and key name where the function is stored.
 
-    Configuration consists of some global options, and a dictionary of function
-    specifications. In the specifications, each key indicating the name of the
-    function (used for generating names for artifacts), and the value
-    determines what files to include in the ZIP (see more details below).
+    Args:
+        s3_conn (:class:`botocore.client.S3`): S3 connection to use for
+            operations.
+        bucket_name (str): name of the bucket to upload to.
+        function_name (str): desired name of the Lambda function. Will be used
+            to construct a key name for the uploaded file.
+        path (str): base path to retrieve files from (mandatory).
+        include (list): file patterns to include in the payload (optional).
+        exclude (list): file patterns to exclude from the payload (optional).
 
-    Payloads are uploaded to either a custom bucket or stackers default bucket,
-    with the key containing it's checksum, to allow repeated uploads to be
-    skipped in subsequent runs.
+    Returns:
+        dict: A dictionary with the bucket & key where the code is located.
 
-    The configuration settings are documented as keyword arguments below.
-
-    Keyword Arguments:
-        bucket (str, optional): Custom bucket to upload functions to.
-            Omitting it will cause the default stacker bucket to be used.
-        prefix (str, optional): S3 key prefix to prepend to the uploaded
-            zip name.
-        functions (dict):
-            Configurations of desired payloads to build. Keys correspond to
-            function names, used to derive key names for the payload. Each
-            value should itself be a dictionary, with the following data:
-                * path (str):
-                    Base directory of the Lambda function payload content.
-                    If it not an absolute path, it will be considered relative
-                    to the directory containing the stacker configuration file
-                    in use.
-
-                    Files in this directory will be added to the payload ZIP,
-                    according to the include and exclude patterns. If not
-                    patterns are provided, all files in this directory
-                    (respecting default exclusions) will be used.
-
-                    Files are stored in the archive with path names relative to
-                    this directory. So, for example, all the files contained
-                    directly under this directory will be added to the root of
-                    the ZIP file.
-                * include(str or list[str], optional):
-                    Pattern or list of patterns of files to include in the
-                    payload. If provided, only files that match these
-                    patterns will be included in the payload.
-
-                    Omitting it is equivalent to accepting all files that are
-                    not otherwise excluded.
-                * exclude(str or list[str], optional):
-                    Pattern or list of patterns of files to exclude from the
-                    payload. If provided, any files that match will be ignored,
-                    regardless of whether they match an inclusion pattern.
-
-                    Commonly ignored files are already excluded by default,
-                    such as ``.git``, ``.svn``, ``__pycache__``, ``*.pyc``,
-                    ``.gitignore``, etc.
-
-    Examples:
-        .. Hook configuration.
-        .. code-block:: yaml
-
-            pre_build:
-              - path: stacker.hooks.aws_lambda.upload_lambda_functions
-                required: true
-                data_key: lambda
-                args:
-                  bucket: custom-bucket
-                  prefix: cloudformation-custom-resources/
-                  functions:
-                    MyFunction:
-                      path: ./lambda_functions
-                      include:
-                        - '*.py'
-                        - '*.txt'
-                      exclude:
-                        - '*.pyc'
-                        - test/
-
-        .. Blueprint usage
-        .. code-block:: python
-
-            from troposphere.awslambda import Function
-            from stacker.blueprints.base import Blueprint
-
-            class LambdaBlueprint(Blueprint):
-                def create_template(self):
-                    code = self.context.hook_data['lambda']['MyFunction']
-
-                    self.template.add_resource(
-                        Function(
-                            'MyFunction',
-                            Code=code,
-                            Handler='my_function.handler',
-                            Role='...',
-                            Runtime='python2.7'
-                        )
-                    )
     """
 
     _ensure_bucket(s3_conn, bucket_name)

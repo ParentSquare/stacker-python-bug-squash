@@ -1,4 +1,4 @@
-# Python bug bash
+# Python bug squash
 
 One of our internal tools includes hooks to perform functions like building AWS lambda payloads from a configuration file and uploading them to S3.
 

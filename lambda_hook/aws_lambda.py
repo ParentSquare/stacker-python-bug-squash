@@ -3,7 +3,7 @@ import os.path
 import stat
 import logging
 import hashlib
-from StringIO import StringIO
+from io import StringIO
 from zipfile import ZipFile, ZIP_DEFLATED
 import botocore
 
@@ -44,9 +44,9 @@ def _zip_files(files, root):
         for zip_entry in zip_file.filelist:
             perms = (zip_entry.external_attr & ZIP_PERMS_MASK) >> 16
             if perms & stat.S_IXUSR != 0:
-                new_perms = 0755
+                new_perms = 0o755
             else:
-                new_perms = 0644
+                new_perms = 0o644
 
             if new_perms != perms:
                 logger.debug("lambda: fixing perms: %s: %o => %o",
@@ -168,10 +168,10 @@ def _ensure_bucket(s3_conn, bucket):
     try:
         s3_conn.head_bucket(Bucket=bucket)
     except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] == '404':
+        if e.response['Error']['Code'] == 404:
             logger.info('Creating bucket %s.', bucket)
             s3_conn.create_bucket(Bucket=bucket)
-        elif e.response['Error']['Code'] in ('401', '403'):
+        elif e.response['Error']['Code'] in (401, 403):
             logger.exception('Access denied for bucket %s.', bucket)
             raise
         else:
@@ -249,11 +249,11 @@ def _check_pattern_list(patterns, key, default=None):
     if not patterns:
         return default
 
-    if isinstance(patterns, basestring):
+    if isinstance(patterns, str):
         return [patterns]
 
     if isinstance(patterns, list):
-        if all(isinstance(p, basestring) for p in patterns):
+        if all(isinstance(p, str) for p in patterns):
             return patterns
 
     raise ValueError("Invalid file patterns in key '{}': must be a string or "

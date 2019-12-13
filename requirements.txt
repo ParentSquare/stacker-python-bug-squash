@@ -1,5 +1,5 @@
 botocore
 boto3
 testfixtures
-formic
+formic-py3
 nose

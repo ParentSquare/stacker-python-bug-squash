@@ -1,5 +1,5 @@
 import unittest
-from io import StringIO
+from StringIO import StringIO
 from zipfile import ZipFile
 
 import botocore
@@ -45,7 +45,7 @@ class TestLambdaHooks(unittest.TestCase):
             perms = (
                 zip_info.external_attr & aws_lambda.ZIP_PERMS_MASK
             ) >> 16
-            self.assertIn(perms, (0o755, 0o644),
+            self.assertIn(perms, (0755, 0644),
                           'ZIP member permission must be 755 or 644')
             found_files.add(zip_info.filename)
 
@@ -67,8 +67,8 @@ class TestLambdaHooks(unittest.TestCase):
     def test_ensure_bucket_bucket_doesnt_exist_create_ok(self):
         self.stubber.add_client_error(
             "head_bucket",
-            service_error_code=404,
-            http_status_code=404
+            service_error_code="404",
+            http_status_code="404"
         )
         self.stubber.add_response(
             "create_bucket",
@@ -81,8 +81,8 @@ class TestLambdaHooks(unittest.TestCase):
     def test_ensure_bucket_bucket_doesnt_exist_access_denied(self):
         self.stubber.add_client_error(
             "head_bucket",
-            service_error_code=401,
-            http_status_code=401
+            service_error_code="401",
+            http_status_code="401"
         )
 
         with self.stubber:
@@ -92,8 +92,8 @@ class TestLambdaHooks(unittest.TestCase):
     def test_ensure_bucket_unhandled_error(self):
         self.stubber.add_client_error(
             "head_bucket",
-            service_error_code=500,
-            http_status_code=500
+            service_error_code="500",
+            http_status_code="500"
         )
 
         with self.stubber:
@@ -101,7 +101,7 @@ class TestLambdaHooks(unittest.TestCase):
                 aws_lambda._ensure_bucket(self.s3, BUCKET_NAME)
 
         exc = cm.exception
-        self.assertEqual(exc.response["Error"]["Code"], 500)
+        self.assertEquals(exc.response["Error"]["Code"], "500")
 
 
 if __name__ == "__main__":

@@ -102,6 +102,8 @@ class TestLambdaHooks(unittest.TestCase):
         exc = cm.exception
         self.assertEqual(exc.response["Error"]["Code"], 500)
 
+    # This should fail, your task is to figure out why and
+    # make it pass.
     def test_upload_lambda_functions(self):
         # 1st call
         self.stubber.add_response("head_bucket", {})

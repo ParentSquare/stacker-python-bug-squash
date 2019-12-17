@@ -26,7 +26,6 @@ F2_FILES = [p[3:] for p in ALL_FILES if p.startswith('f2')]
 
 BUCKET_NAME = "myBucket"
 
-
 class TestLambdaHooks(unittest.TestCase):
     def setUp(self):
         self.s3 = boto3.client("s3")
@@ -36,7 +35,7 @@ class TestLambdaHooks(unittest.TestCase):
     def temp_directory_with_files(cls, files=ALL_FILES):
         d = TempDirectory()
         for f in files:
-            d.write(f, '')
+            d.write(f, b'')
         return d
 
     def assert_zip_file_list(self, zip_file, files):
@@ -103,6 +102,26 @@ class TestLambdaHooks(unittest.TestCase):
         exc = cm.exception
         self.assertEqual(exc.response["Error"]["Code"], 500)
 
+    def test_upload_lambda_functions(self):
+        # 1st call
+        self.stubber.add_response("head_bucket", {})
+        self.stubber.add_response("head_object", {})
+        self.stubber.add_response("put_object", {})
+
+        # 2nd call
+        self.stubber.add_response("head_bucket", {})
+        self.stubber.add_response("head_object", {
+            "ETag": '"b9b90449fe17ded2c9424367f0fd147e"' # correct hash for the files, you can trust this, including extra quotes
+        })
+        # should not call put_object again, so no stubbing
+
+        try:
+            with self.temp_directory_with_files() as tmp_dir:
+                with self.stubber:
+                    aws_lambda.upload_lambda_functions(self.s3, BUCKET_NAME, "things", tmp_dir.path)
+                    aws_lambda.upload_lambda_functions(self.s3, BUCKET_NAME, "things", tmp_dir.path)
+        finally:
+            tmp_dir.cleanup()
 
 if __name__ == "__main__":
     unittest.main()

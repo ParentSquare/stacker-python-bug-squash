@@ -3,7 +3,7 @@ import os.path
 import stat
 import logging
 import hashlib
-from io import StringIO
+from io import BytesIO
 from zipfile import ZipFile, ZIP_DEFLATED
 import botocore
 
@@ -34,7 +34,7 @@ def _zip_files(files, root):
         str: content of the ZIP file as a byte string.
 
     """
-    zip_data = StringIO()
+    zip_data = BytesIO()
     with ZipFile(zip_data, 'w', ZIP_DEFLATED) as zip_file:
         for fname in files:
             zip_file.write(os.path.join(root, fname), fname)

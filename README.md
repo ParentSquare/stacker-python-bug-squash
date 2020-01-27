@@ -13,6 +13,8 @@ First make sure you have pip & virtualenv installed.  If not, then perform the f
 ```
 # if not running python 3 by default already:
 brew update && brew upgrade python
+# and then alias it:
+alias python=/usr/local/bin/python3
 
 easy_install pip
 pip install --upgrade pip

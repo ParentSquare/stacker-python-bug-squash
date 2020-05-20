@@ -124,6 +124,7 @@ class TestLambdaHooks(unittest.TestCase):
                     aws_lambda.upload_lambda_functions(self.s3, BUCKET_NAME, "things", tmp_dir.path)
         finally:
             tmp_dir.cleanup()
+        self.stubber.assert_no_pending_responses()
 
 if __name__ == "__main__":
     unittest.main()

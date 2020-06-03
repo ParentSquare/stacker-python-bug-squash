@@ -105,26 +105,25 @@ class TestLambdaHooks(unittest.TestCase):
     # This should fail, your task is to figure out why and
     # make it pass.
     def test_upload_lambda_functions(self):
-        # 1st call
-        self.stubber.add_response("head_bucket", {})
-        self.stubber.add_response("head_object", {})
-        self.stubber.add_response("put_object", {})
-
-        # 2nd call
-        self.stubber.add_response("head_bucket", {})
-        self.stubber.add_response("head_object", {
-            "ETag": '"b9b90449fe17ded2c9424367f0fd147e"' # correct hash for the files, you can trust this, including extra quotes
-        })
-        # should not call put_object again, so no stubbing
-
         try:
             with self.temp_directory_with_files() as tmp_dir:
+                # 1st call
+                self.stubber.add_response("head_bucket", {})
+                self.stubber.add_response("head_object", {})
+                self.stubber.add_response("put_object", {})
                 with self.stubber:
                     aws_lambda.upload_lambda_functions(self.s3, BUCKET_NAME, "things", tmp_dir.path)
+                    self.stubber.assert_no_pending_responses()
+
+                # 2nd call should recognize the file has already been uploaded and should not call put_object again
+                self.stubber.add_response("head_bucket", {})
+                self.stubber.add_response("head_object", { "ETag": '"f4acd55a9e25a6c7a789ddbe52bc7521"' })
+                with self.stubber:
                     aws_lambda.upload_lambda_functions(self.s3, BUCKET_NAME, "things", tmp_dir.path)
+                    self.stubber.assert_no_pending_responses()
+
         finally:
             tmp_dir.cleanup()
-        self.stubber.assert_no_pending_responses()
 
 if __name__ == "__main__":
     unittest.main()

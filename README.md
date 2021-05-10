@@ -33,7 +33,7 @@ pip install -r requirements.txt
 You should now be able to run the test suite from the top level directory of the repo:
 
 ```
-nosetests
+nosetests --exe
 ```
 
 ### Docker
@@ -45,5 +45,5 @@ make shell
 
 Then directly in the docker container:
 ```
-$ nosetests
+$ nosetests --exe
 ```

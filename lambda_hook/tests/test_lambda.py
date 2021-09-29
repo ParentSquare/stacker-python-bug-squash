@@ -1,6 +1,7 @@
 import unittest
 from io import StringIO
 from zipfile import ZipFile
+import logging
 
 import botocore
 from botocore.stub import Stubber
@@ -30,6 +31,9 @@ class TestLambdaHooks(unittest.TestCase):
     def setUp(self):
         self.s3 = boto3.client("s3")
         self.stubber = Stubber(self.s3)
+        # This turns off the DEBUG logging within botocore which was throwing
+        # extraneous debug output around internal operations
+        logging.getLogger('botocore').setLevel(logging.CRITICAL)
 
     @classmethod
     def temp_directory_with_files(cls, files=ALL_FILES):

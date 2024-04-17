@@ -20,8 +20,8 @@ pip install virtualenv
 Now instantiate a virtualenv and activate it:
 
 ```
-virtualenv remind-bug-squash
-. ./remind-bug-squash/bin/activate
+virtualenv psq-bug-squash
+. ./psq-bug-squash/bin/activate
 ```
 
 Now install all the necessary dependencies:

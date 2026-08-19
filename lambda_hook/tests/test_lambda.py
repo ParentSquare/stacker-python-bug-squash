@@ -121,7 +121,7 @@ class TestLambdaHooks(unittest.TestCase):
 
                 # 2nd call should recognize the file has already been uploaded and should not call put_object again
                 self.stubber.add_response("head_bucket", {})
-                self.stubber.add_response("head_object", { "ETag": '"f4acd55a9e25a6c7a789ddbe52bc7521"' })
+                self.stubber.add_response("head_object", { "ETag": '"b9b90449fe17ded2c9424367f0fd147e"' })
                 with self.stubber:
                     aws_lambda.upload_lambda_functions(self.s3, BUCKET_NAME, "things", tmp_dir.path)
                     self.stubber.assert_no_pending_responses()
